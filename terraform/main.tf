@@ -39,7 +39,7 @@ module "prd" {
   // required
   name           = "control-keys"
   image          = "docker.pkg.github.com/byuoitav/control-keys/control-keys-dev"
-  image_version  = "9ec9810"
+  image_version  = "821030e"
   container_port = 8029
   repo_url       = "https://github.com/byuoitav/control-keys"
 
@@ -47,9 +47,14 @@ module "prd" {
   image_pull_secret = "github-docker-registry"
   public_urls       = ["control-keys.av.byu.edu"]
   container_env = {
-    "DB_ADDRESS"  = data.aws_ssm_parameter.couch_address.value
-    "DB_USERNAME" = data.aws_ssm_parameter.couch_username.value
-    "DB_PASSWORD" = data.aws_ssm_parameter.couch_password.value
+    "DB_ADDRESS"       = data.aws_ssm_parameter.couch_address.value
+    "DB_USERNAME"      = data.aws_ssm_parameter.couch_username.value
+    "DB_PASSWORD"      = data.aws_ssm_parameter.couch_password.value
+    "STOP_REPLICATION" = "true"
   }
   container_args = []
+  ingress_annotations = {
+    "nginx.ingress.kubernetes.io/whitelist-source-range" = "128.187.0.0/16"
+  }
+  health_check = false
 }
