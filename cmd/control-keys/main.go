@@ -21,6 +21,5 @@ func main() {
 		MaxHeaderBytes: 1024 * 10,
 	}
 
-	router.StartServer(&server)
-
+	_ = router.StartServer(&server)
 }
