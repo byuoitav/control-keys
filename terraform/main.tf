@@ -46,6 +46,7 @@ module "prd" {
   // optional
   image_pull_secret = "github-docker-registry"
   public_urls       = ["control-keys.av.byu.edu"]
+  private           = true
   container_env = {
     "DB_ADDRESS"       = data.aws_ssm_parameter.couch_address.value
     "DB_USERNAME"      = data.aws_ssm_parameter.couch_username.value
@@ -53,8 +54,5 @@ module "prd" {
     "STOP_REPLICATION" = "true"
   }
   container_args = []
-  ingress_annotations = {
-    "nginx.ingress.kubernetes.io/whitelist-source-range" = "128.187.0.0/16"
-  }
-  health_check = false
+  health_check   = false
 }
