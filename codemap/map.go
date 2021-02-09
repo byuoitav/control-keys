@@ -30,13 +30,6 @@ func (c *CodeMap) Start() {
 type Preset struct {
 	RoomID     string
 	PresetName string
-	Ok         bool
-}
-
-//ControlKey struct
-type ControlKey struct {
-	ControlKey string
-	Ok         bool
 }
 
 func generateMap() (map[string]Preset, error) {
@@ -83,77 +76,56 @@ func (c *CodeMap) GetPresetFromMap(code string) Preset {
 
 	toReturn, ok := c.controlKeys[code]
 	if !ok {
-		toReturn = Preset{
-			RoomID:     "",
-			PresetName: "",
-			Ok:         ok,
-		}
-	} else {
-		toReturn = Preset{
-			RoomID:     toReturn.RoomID,
-			PresetName: toReturn.PresetName,
-			Ok:         ok,
-		}
+		return Preset{}
 	}
 
 	return toReturn
 }
 
-func (c *CodeMap) GetControlKeyFromPreset(preset Preset) ControlKey {
+func (c *CodeMap) GetControlKeyFromPreset(preset Preset) string {
 	c.m.RLock()
 	defer c.m.RUnlock()
 
 	for key, value := range c.controlKeys {
 		if value == preset {
-			controlKey := ControlKey{
-				ControlKey: key,
-				Ok:         true,
-			}
-			return controlKey
+			return key
 		}
 	}
 
-	controlKey := ControlKey{
-		ControlKey: "",
-		Ok:         false,
-	}
-
-	return controlKey
+	return ""
 }
 
-func (c *CodeMap) RefreshControlKey(preset Preset) ControlKey {
-	c.m.RLock()
-	defer c.m.RUnlock()
+func (c *CodeMap) RefreshControlKey(roomID string) bool {
+	c.m.Lock()
+	defer c.m.Unlock()
 
-	code := generateCode()
-	_, exists := c.controlKeys[code]
-	for exists {
-		code = generateCode()
-		_, exists = c.controlKeys[code]
-	}
+	var roomKeys []string
 
-	var curKey string
 	for k, v := range c.controlKeys {
-		if v == preset {
-			curKey = k
-			break
+		if v.RoomID == roomID {
+			roomKeys = append(roomKeys, k)
 		}
 	}
 
-	if curKey == "" {
+	if len(roomKeys) == 0 {
 		// gonna assume it's not a valid preset
-		return ControlKey{
-			ControlKey: "",
-			Ok:         false,
-		}
+		return false
 	}
 
-	delete(c.controlKeys, curKey)
-	c.controlKeys[code] = preset
-	return ControlKey{
-		ControlKey: code,
-		Ok:         true,
+	for _, key := range roomKeys {
+		code := generateCode()
+		_, exists := c.controlKeys[code]
+		for exists {
+			code = generateCode()
+			_, exists = c.controlKeys[code]
+		}
+
+		preset := c.controlKeys[key]
+		delete(c.controlKeys, key)
+		c.controlKeys[code] = preset
 	}
+
+	return true
 }
 
 func (c *CodeMap) refreshMap() {

@@ -19,7 +19,7 @@ func main() {
 	// Functionality Endpoints
 	router.GET("/:controlKey/getPreset", h.GetPresetHandler)
 	router.GET("/:preset/getControlKey", h.GetControlKeyHandler)
-	router.GET("/:preset/refresh", h.RefreshPresetKey)
+	router.GET("/:room/refresh", h.RefreshPresetKey)
 	router.GET("/status", h.HealthCheck)
 
 	server := http.Server{

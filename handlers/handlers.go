@@ -22,7 +22,7 @@ func New(c *codemap.CodeMap) *Handler {
 func (h *Handler) GetPresetHandler(context echo.Context) error {
 	controlKey := context.Param("controlKey")
 	preset := h.c.GetPresetFromMap(controlKey)
-	if !preset.Ok {
+	if preset == (codemap.Preset{}) {
 		return context.JSON(http.StatusNotFound, "The preset was not found for this control key")
 	}
 	return context.JSON(http.StatusOK, preset)
@@ -37,26 +37,21 @@ func (h *Handler) GetControlKeyHandler(context echo.Context) error {
 	}
 
 	controlKey := h.c.GetControlKeyFromPreset(preset)
-	if !controlKey.Ok {
+	if controlKey == "" {
 		return context.JSON(http.StatusNotFound, "The control key was not found for this preset")
 	}
 	return context.JSON(http.StatusOK, controlKey)
 }
 
 func (h *Handler) RefreshPresetKey(context echo.Context) error {
-	presetParam := context.Param("preset")
-	presetParts := strings.SplitN(presetParam, " ", 2)
-	preset := codemap.Preset{
-		RoomID:     presetParts[0],
-		PresetName: presetParts[1],
-	}
+	roomID := context.Param("room")
 
-	controlKey := h.c.RefreshControlKey(preset)
+	ok := h.c.RefreshControlKey(roomID)
 
-	if !controlKey.Ok {
+	if !ok {
 		return context.JSON(http.StatusNotFound, "Invalid preset")
 	}
-	return context.JSON(http.StatusOK, controlKey)
+	return context.JSON(http.StatusOK, "ok")
 }
 
 func (h *Handler) HealthCheck(context echo.Context) error {
