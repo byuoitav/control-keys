@@ -1,6 +1,6 @@
 module github.com/byuoitav/control-keys
 
-go 1.14
+go 1.15
 
 require (
 	github.com/byuoitav/common v0.0.0-20200521193927-1fdf4e0a4271
