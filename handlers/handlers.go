@@ -25,9 +25,26 @@ func GetControlKeyHandler(context echo.Context) error {
 		RoomID:     presetParts[0],
 		PresetName: presetParts[1],
 	}
+
 	controlKey := codemap.GetControlKeyFromPreset(preset)
 	if !controlKey.Ok {
 		return context.JSON(http.StatusNotFound, "The control key was not found for this preset")
+	}
+	return context.JSON(http.StatusOK, controlKey)
+}
+
+func RefreshPresetKey(context echo.Context) error {
+	presetParam := context.Param("preset")
+	presetParts := strings.SplitN(presetParam, " ", 2)
+	preset := codemap.Preset{
+		RoomID:     presetParts[0],
+		PresetName: presetParts[1],
+	}
+
+	controlKey := codemap.RefreshControlKey(preset)
+
+	if !controlKey.Ok {
+		return context.JSON(http.StatusNotFound, "Invalid preset")
 	}
 	return context.JSON(http.StatusOK, controlKey)
 }
