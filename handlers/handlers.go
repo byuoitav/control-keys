@@ -56,7 +56,8 @@ func (h *Handler) RefreshPresetKey(context echo.Context) error {
 	if !ok {
 		return context.JSON(http.StatusNotFound, "Invalid preset")
 	}
-	return context.JSON(http.StatusOK, "ok")
+
+	return context.NoContent(http.StatusOK)
 }
 
 func (h *Handler) HealthCheck(context echo.Context) error {
