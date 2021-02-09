@@ -12,6 +12,10 @@ type Handler struct {
 	c *codemap.CodeMap
 }
 
+type controlKey struct {
+	Key string
+}
+
 func New(c *codemap.CodeMap) *Handler {
 	return &Handler{
 		c: c,
@@ -36,11 +40,12 @@ func (h *Handler) GetControlKeyHandler(context echo.Context) error {
 		PresetName: presetParts[1],
 	}
 
-	controlKey := h.c.GetControlKeyFromPreset(preset)
-	if controlKey == "" {
+	key := h.c.GetControlKeyFromPreset(preset)
+	if key == "" {
 		return context.JSON(http.StatusNotFound, "The control key was not found for this preset")
 	}
-	return context.JSON(http.StatusOK, controlKey)
+
+	return context.JSON(http.StatusOK, controlKey{Key: key})
 }
 
 func (h *Handler) RefreshPresetKey(context echo.Context) error {
