@@ -8,17 +8,27 @@ import (
 	"github.com/labstack/echo"
 )
 
+type Handler struct {
+	c *codemap.CodeMap
+}
+
+func New(c *codemap.CodeMap) *Handler {
+	return &Handler{
+		c: c,
+	}
+}
+
 //GetPresetHandler The endpoint to get the preset from the map
-func GetPresetHandler(context echo.Context) error {
+func (h *Handler) GetPresetHandler(context echo.Context) error {
 	controlKey := context.Param("controlKey")
-	preset := codemap.GetPresetFromMap(controlKey)
+	preset := h.c.GetPresetFromMap(controlKey)
 	if !preset.Ok {
 		return context.JSON(http.StatusNotFound, "The preset was not found for this control key")
 	}
 	return context.JSON(http.StatusOK, preset)
 }
 
-func GetControlKeyHandler(context echo.Context) error {
+func (h *Handler) GetControlKeyHandler(context echo.Context) error {
 	presetParam := context.Param("preset")
 	presetParts := strings.SplitN(presetParam, " ", 2)
 	preset := codemap.Preset{
@@ -26,14 +36,14 @@ func GetControlKeyHandler(context echo.Context) error {
 		PresetName: presetParts[1],
 	}
 
-	controlKey := codemap.GetControlKeyFromPreset(preset)
+	controlKey := h.c.GetControlKeyFromPreset(preset)
 	if !controlKey.Ok {
 		return context.JSON(http.StatusNotFound, "The control key was not found for this preset")
 	}
 	return context.JSON(http.StatusOK, controlKey)
 }
 
-func RefreshPresetKey(context echo.Context) error {
+func (h *Handler) RefreshPresetKey(context echo.Context) error {
 	presetParam := context.Param("preset")
 	presetParts := strings.SplitN(presetParam, " ", 2)
 	preset := codemap.Preset{
@@ -41,7 +51,7 @@ func RefreshPresetKey(context echo.Context) error {
 		PresetName: presetParts[1],
 	}
 
-	controlKey := codemap.RefreshControlKey(preset)
+	controlKey := h.c.RefreshControlKey(preset)
 
 	if !controlKey.Ok {
 		return context.JSON(http.StatusNotFound, "Invalid preset")
@@ -49,6 +59,6 @@ func RefreshPresetKey(context echo.Context) error {
 	return context.JSON(http.StatusOK, controlKey)
 }
 
-func HealthCheck(context echo.Context) error {
+func (h *Handler) HealthCheck(context echo.Context) error {
 	return context.JSON(http.StatusOK, "Healthy!")
 }
