@@ -3,65 +3,44 @@ package codemap
 import (
 	"math/rand"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/byuoitav/common/db"
 	"github.com/byuoitav/common/log"
 )
 
-var m map[string]Preset
-var reqChannel chan request
-var codeReqChannel chan codeRequest
-var mapChannel chan map[string]Preset
-
-type request struct {
-	code   string
-	respch chan Preset
+type CodeMap struct {
+	controlKeys map[string]Preset
+	m           sync.RWMutex
 }
 
-type codeRequest struct {
-	preset Preset
-	respch chan ControlKey
+func New() *CodeMap {
+	return &CodeMap{
+		controlKeys: make(map[string]Preset),
+		m:           sync.RWMutex{},
+	}
+}
+
+func (c *CodeMap) Start() {
+	go c.refreshMap()
 }
 
 // Preset struct
 type Preset struct {
 	RoomID     string
 	PresetName string
-	Ok         bool
 }
 
-//ControlKey struct
-type ControlKey struct {
-	ControlKey string
-	Ok         bool
-}
-
-func init() {
-	reqChannel = make(chan request)
-	codeReqChannel = make(chan codeRequest)
-	mapChannel = make(chan map[string]Preset)
-	m = generateMap()
-	//send events to all of the pis
-	// messenger, er := messenger.BuildMessenger("", base.Messenger, 5000)
-	// if er != nil {
-	// 	log.L.Fatalf("failed to build messenger: %s", er)
-	// }
-	// // for key, value := range m {
-	// // 	SendEvent(key, value.RoomID, value.PresetName, *messenger)
-	// // }
-	go startManager()
-	go refreshMap()
-}
-
-func generateMap() map[string]Preset {
+func generateMap() (map[string]Preset, error) {
 	//Query the DB for all of the UIConfigs
 	uiConfigs, er := db.GetDB().GetAllUIConfigs()
 	if er != nil {
 		log.L.Errorf("error: %s", er)
+		return nil, er
 	}
 	//create a map for Room/Preset
-	m = make(map[string]Preset)
+	m := make(map[string]Preset)
 	for r := range uiConfigs {
 		for p := range uiConfigs[r].Presets {
 			code := generateCode()
@@ -76,11 +55,8 @@ func generateMap() map[string]Preset {
 			}
 		}
 	}
-	// //print out map
-	// for key, value := range m {
-	// 	fmt.Println("Key:", key, "Value:", value)
-	// }
-	return m
+
+	return m, nil
 }
 
 func generateCode() string {
@@ -94,112 +70,84 @@ func generateCode() string {
 }
 
 // GetPresetFromMap function
-func GetPresetFromMap(code string) Preset {
-	req := request{
-		code:   code,
-		respch: make(chan Preset),
+func (c *CodeMap) GetPresetFromMap(code string) Preset {
+	c.m.RLock()
+	defer c.m.RUnlock()
+
+	toReturn, ok := c.controlKeys[code]
+	if !ok {
+		return Preset{}
 	}
-	reqChannel <- req
-	return <-req.respch
+
+	return toReturn
 }
 
-func GetControlKeyFromPreset(preset Preset) ControlKey {
-	req := codeRequest{
-		preset: preset,
-		respch: make(chan ControlKey),
-	}
-	codeReqChannel <- req
-	return <-req.respch
-}
+func (c *CodeMap) GetControlKeyFromPreset(preset Preset) string {
+	c.m.RLock()
+	defer c.m.RUnlock()
 
-func startManager() {
-	for {
-		select {
-		case req := <-reqChannel:
-			returnedPreset, ok := m[req.code]
-			if !ok {
-				preset := Preset{
-					RoomID:     "",
-					PresetName: "",
-					Ok:         ok,
-				}
-				req.respch <- preset
-			} else {
-				preset := Preset{
-					RoomID:     returnedPreset.RoomID,
-					PresetName: returnedPreset.PresetName,
-					Ok:         ok,
-				}
-				req.respch <- preset
-			}
-			close(req.respch)
-
-		case req := <-codeReqChannel:
-			counter := 0
-			for key, value := range m {
-				if value == req.preset {
-					controlKey := ControlKey{
-						ControlKey: key,
-						Ok:         true,
-					}
-					counter = 1
-					req.respch <- controlKey
-					close(req.respch)
-				}
-			}
-			if counter == 0 {
-				controlKey := ControlKey{
-					ControlKey: "",
-					Ok:         false,
-				}
-				req.respch <- controlKey
-				close(req.respch)
-			}
-		case newMap := <-mapChannel:
-			m = newMap
-			//send events to all of the pis
-			// messenger, er := messenger.BuildMessenger("ITB-1010-CP1:7100", base.Messenger, 5000)
-			// if er != nil {
-			// 	log.L.Fatalf("failed to build messenger: %s", er)
-			// }
-			// for key, value := range m {
-			// 	SendEvent(key, value.RoomID, value.PresetName, *messenger)
-			// 	fmt.Println("Key:", key, "Value:", value)
-			// }
-
+	for key, value := range c.controlKeys {
+		if value == preset {
+			return key
 		}
 	}
+
+	return ""
 }
 
-// //SendEvent this emits an event that tells the pis what thier code is
-// func SendEvent(controlKey string, roomID string, presetName string, runner messenger.Messenger) {
-// 	a := strings.Split(roomID, "-")
-// 	roominfo := events.BasicRoomInfo{}
-// 	if len(a) == 2 {
-// 		roominfo = events.BasicRoomInfo{
-// 			BuildingID: a[0],
-// 			RoomID:     roomID,
-// 		}
-// 	}
-// 	Event := events.Event{
-// 		Timestamp:    time.Now(),
-// 		Key:          "ControlKey",
-// 		Value:        controlKey,
-// 		AffectedRoom: roominfo,
-// 		EventTags: []string{
-// 			events.Heartbeat,
-// 		},
-// 		Data: presetName,
-// 	}
+func (c *CodeMap) RefreshControlKey(roomID string) bool {
+	c.m.Lock()
+	defer c.m.Unlock()
 
-// 	runner.SendEvent(Event)
+	var roomKeys []string
 
-// }
+	for k, v := range c.controlKeys {
+		if v.RoomID == roomID {
+			roomKeys = append(roomKeys, k)
+		}
+	}
 
-func refreshMap() {
+	if len(roomKeys) == 0 {
+		// gonna assume it's not a valid preset
+		return false
+	}
+
+	for _, key := range roomKeys {
+		code := generateCode()
+		_, exists := c.controlKeys[code]
+		for exists {
+			code = generateCode()
+			_, exists = c.controlKeys[code]
+		}
+
+		preset := c.controlKeys[key]
+		delete(c.controlKeys, key)
+		c.controlKeys[code] = preset
+	}
+
+	return true
+}
+
+func (c *CodeMap) refreshMap() {
+	newKeys, err := generateMap()
+	for err != nil {
+		time.Sleep(60 * time.Second)
+		newKeys, err = generateMap()
+	}
+	c.m.Lock()
+	c.controlKeys = newKeys
+	c.m.Unlock()
+
 	ticker := time.NewTicker(1 * time.Hour)
 	for range ticker.C {
-		newMap := generateMap()
-		mapChannel <- newMap
+		newKeys, err := generateMap()
+		for err != nil {
+			ticker.Reset(1 * time.Hour)
+			time.Sleep(60 * time.Second)
+			newKeys, err = generateMap()
+		}
+		c.m.Lock()
+		c.controlKeys = newKeys
+		c.m.Unlock()
 	}
 }
