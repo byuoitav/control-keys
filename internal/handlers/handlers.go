@@ -1,65 +1,78 @@
 package handlers
 
 import (
+	"context"
+	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
-	"github.com/byuoitav/control-keys/codemap"
+	controlkeys "github.com/byuoitav/control-keys"
 	"github.com/labstack/echo"
 )
 
-type Handler struct {
-	c *codemap.CodeMap
+type Handlers struct {
+	KeyService  controlkeys.KeyService
+	DataService controlkeys.DataService
 }
 
-type ControlKey struct {
-	ControlKey string
+type keyResponse struct {
+	ControlKey string `json:"ControlKey"`
 }
 
-func New(c *codemap.CodeMap) *Handler {
-	return &Handler{
-		c: c,
-	}
+type presetResponse struct {
+	RoomID     string `json:"RoomID"`
+	PresetName string `json:"PresetName"`
 }
 
 //GetPresetHandler The endpoint to get the preset from the map
-func (h *Handler) GetPresetHandler(context echo.Context) error {
-	controlKey := context.Param("controlKey")
-	preset := h.c.GetPresetFromMap(controlKey)
-	if preset == (codemap.Preset{}) {
-		return context.JSON(http.StatusNotFound, "The preset was not found for this control key")
-	}
-	return context.JSON(http.StatusOK, preset)
-}
+func (h *Handlers) GetPresetHandler(c echo.Context) error {
+	controlKey := c.Param("key")
 
-func (h *Handler) GetControlKeyHandler(context echo.Context) error {
-	presetParam := context.Param("preset")
-	presetParts := strings.SplitN(presetParam, " ", 2)
-	preset := codemap.Preset{
-		RoomID:     presetParts[0],
-		PresetName: presetParts[1],
-	}
-
-	key := h.c.GetControlKeyFromPreset(preset)
-	if key == "" {
-		return context.JSON(http.StatusNotFound, "The control key was not found for this preset")
-	}
-
-	return context.JSON(http.StatusOK, ControlKey{ControlKey: key})
-}
-
-func (h *Handler) RefreshPresetKey(context echo.Context) error {
-	roomID := context.Param("room")
-
-	ok := h.c.RefreshControlKey(roomID)
-
+	cg, ok := h.KeyService.ControlGroup(c.Request().Context(), controlKey)
 	if !ok {
-		return context.JSON(http.StatusNotFound, "Invalid preset")
+		return c.NoContent(http.StatusNotFound)
 	}
 
-	return context.NoContent(http.StatusOK)
+	return c.JSON(http.StatusOK, presetResponse{
+		RoomID:     cg.Room,
+		PresetName: cg.ControlGroup,
+	})
 }
 
-func (h *Handler) HealthCheck(context echo.Context) error {
+func (h *Handlers) GetControlKeyHandler(c echo.Context) error {
+	split := strings.SplitN(c.Param("preset"), " ", 2)
+	cg := controlkeys.ControlGroup{
+		Room:         split[0],
+		ControlGroup: split[1],
+	}
+
+	key, ok := h.KeyService.Key(c.Request().Context(), cg)
+	if !ok {
+		return c.NoContent(http.StatusNotFound)
+	}
+
+	return c.JSON(http.StatusOK, keyResponse{ControlKey: key})
+}
+
+func (h *Handlers) RefreshPresetKey(c echo.Context) error {
+	ctx, cancel := context.WithTimeout(c.Request().Context(), 3*time.Second)
+	defer cancel()
+
+	cgs, err := h.DataService.ControlGroupsInRoom(ctx, c.Param("room"))
+	if err != nil {
+		return c.String(http.StatusInternalServerError, fmt.Sprintf("unable to get control groups for this room: %s", err))
+	}
+
+	for _, cg := range cgs {
+		if err := h.KeyService.Refresh(ctx, cg); err != nil {
+			return c.String(http.StatusInternalServerError, fmt.Sprintf("unable to refresh controlGroup: %s", err))
+		}
+	}
+
+	return c.NoContent(http.StatusOK)
+}
+
+func (h *Handlers) HealthCheck(context echo.Context) error {
 	return context.JSON(http.StatusOK, "Healthy!")
 }
