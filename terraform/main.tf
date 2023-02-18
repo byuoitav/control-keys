@@ -19,6 +19,7 @@ data "aws_ssm_parameter" "eks_cluster_endpoint" {
 
 provider "kubernetes" {
   host = data.aws_ssm_parameter.eks_cluster_endpoint.value
+  config_path = "~/.kube/config"
 }
 
 data "aws_ssm_parameter" "couch_address" {
@@ -39,7 +40,7 @@ module "prd" {
   // required
   name           = "control-keys"
   image          = "docker.pkg.github.com/byuoitav/control-keys/control-keys-dev"
-  image_version  = "821030e"
+  image_version  = "8f8871a"
   container_port = 8029
   repo_url       = "https://github.com/byuoitav/control-keys"
 
