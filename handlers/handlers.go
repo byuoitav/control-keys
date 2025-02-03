@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/byuoitav/control-keys/codemap"
-	"github.com/labstack/echo"
+	"github.com/gin-gonic/gin"
 )
 
 type Handler struct {
@@ -22,17 +22,18 @@ func New(c *codemap.CodeMap) *Handler {
 	}
 }
 
-//GetPresetHandler The endpoint to get the preset from the map
-func (h *Handler) GetPresetHandler(context echo.Context) error {
+// GetPresetHandler The endpoint to get the preset from the map
+func (h *Handler) GetPresetHandler(context *gin.Context) {
 	controlKey := context.Param("controlKey")
 	preset := h.c.GetPresetFromMap(controlKey)
 	if preset == (codemap.Preset{}) {
-		return context.JSON(http.StatusNotFound, "The preset was not found for this control key")
+		context.JSON(http.StatusNotFound, gin.H{"message": "The preset was not found for this control key"})
+		return
 	}
-	return context.JSON(http.StatusOK, preset)
+	context.JSON(http.StatusOK, preset)
 }
 
-func (h *Handler) GetControlKeyHandler(context echo.Context) error {
+func (h *Handler) GetControlKeyHandler(context *gin.Context) {
 	presetParam := context.Param("preset")
 	presetParts := strings.SplitN(presetParam, " ", 2)
 	preset := codemap.Preset{
@@ -42,24 +43,26 @@ func (h *Handler) GetControlKeyHandler(context echo.Context) error {
 
 	key := h.c.GetControlKeyFromPreset(preset)
 	if key == "" {
-		return context.JSON(http.StatusNotFound, "The control key was not found for this preset")
+		context.JSON(http.StatusNotFound, gin.H{"message": "The control key was not found for this preset"})
+		return
 	}
 
-	return context.JSON(http.StatusOK, ControlKey{ControlKey: key})
+	context.JSON(http.StatusOK, ControlKey{ControlKey: key})
 }
 
-func (h *Handler) RefreshPresetKey(context echo.Context) error {
+func (h *Handler) RefreshPresetKey(context *gin.Context) {
 	roomID := context.Param("room")
 
 	ok := h.c.RefreshControlKey(roomID)
 
 	if !ok {
-		return context.JSON(http.StatusNotFound, "Invalid preset")
+		context.JSON(http.StatusNotFound, gin.H{"message": "Invalid preset"})
+		return
 	}
 
-	return context.NoContent(http.StatusOK)
+	context.Status(http.StatusOK)
 }
 
-func (h *Handler) HealthCheck(context echo.Context) error {
-	return context.JSON(http.StatusOK, "Healthy!")
+func (h *Handler) HealthCheck(context *gin.Context) {
+	context.JSON(http.StatusOK, gin.H{"message": "Healthy!"})
 }
