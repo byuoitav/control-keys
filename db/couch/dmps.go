@@ -3,7 +3,7 @@ package couch
 import (
 	"fmt"
 
-	"github.com/byuoitav/common/structs"
+	"github.com/byuoitav/control-keys/structs"
 )
 
 // GetDMPSList - get the list of DMPSes to pull events from

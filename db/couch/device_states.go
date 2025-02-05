@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	sd "github.com/byuoitav/common/state/statedefinition"
+	sd "github.com/byuoitav/control-keys/state/statedefinition"
 )
 
 func (c *CouchDB) GetDeviceState(id string) (sd.StaticDevice, error) {

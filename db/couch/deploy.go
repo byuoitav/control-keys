@@ -3,15 +3,15 @@ package couch
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"time"
 
-	"github.com/byuoitav/common/log"
-	"github.com/byuoitav/common/structs"
+	"github.com/byuoitav/control-keys/structs"
+	"go.uber.org/zap"
 )
 
-//GetDeploymentInfo returns a config definition for a service
+// GetDeploymentInfo returns a config definition for a service
 func (c *CouchDB) GetDeploymentInfo(serviceID string) (structs.FullConfig, error) {
 	toReturn, err := c.getDeploymentInfo(serviceID)
 	return toReturn, err
@@ -23,14 +23,14 @@ func (c *CouchDB) getDeploymentInfo(serviceID string) (structs.FullConfig, error
 	return toReturn, err
 }
 
-//GetDeviceDeploymentInfo returns the the necessary elements for a device of a given designation
+// GetDeviceDeploymentInfo returns the the necessary elements for a device of a given designation
 func (c *CouchDB) GetDeviceDeploymentInfo(deviceType string) (structs.DeviceDeploymentConfig, error) {
 	var toReturn structs.DeviceDeploymentConfig
 	err := c.MakeRequest("GET", fmt.Sprintf("%s/%s", CAMPUS, deviceType), "", nil, &toReturn)
 	return toReturn, err
 }
 
-//GetServiceInfo returns a service config definition
+// GetServiceInfo returns a service config definition
 func (c *CouchDB) GetServiceInfo(serviceID string) (structs.ServiceConfigWrapper, error) {
 	toReturn, err := c.getServiceInfo(serviceID)
 	return toReturn, err
@@ -68,7 +68,7 @@ func (c *CouchDB) GetServiceAttachment(service, designation string) ([]byte, err
 	}
 	defer resp.Body.Close()
 
-	b, err := ioutil.ReadAll(resp.Body)
+	b, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}
@@ -80,7 +80,7 @@ func (c *CouchDB) GetServiceAttachment(service, designation string) ([]byte, err
 			return nil, fmt.Errorf("received a non-200 response from %v. Body: %s", url, b)
 		}
 
-		log.L.Infof("Non-200 response: %v", ce.Error)
+		zap.L().Info("Non-200 response", zap.String("error", ce.Error))
 		return nil, CheckCouchErrors(ce)
 	}
 
@@ -113,7 +113,7 @@ func (c *CouchDB) GetServiceZip(service, designation string) ([]byte, error) {
 	}
 	defer resp.Body.Close()
 
-	b, err := ioutil.ReadAll(resp.Body)
+	b, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}
@@ -125,7 +125,7 @@ func (c *CouchDB) GetServiceZip(service, designation string) ([]byte, error) {
 			return nil, fmt.Errorf("received a non-200 response from %v. Body: %s", url, b)
 		}
 
-		log.L.Infof("Non-200 response: %v", ce.Error)
+		zap.L().Info("Non-200 response", zap.String("error", ce.Error))
 		return nil, CheckCouchErrors(ce)
 	}
 

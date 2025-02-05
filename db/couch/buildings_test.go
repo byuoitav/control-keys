@@ -3,7 +3,7 @@ package couch
 import (
 	"testing"
 
-	"github.com/byuoitav/common/structs"
+	"github.com/byuoitav/control-keys/structs"
 )
 
 var testBuilding = "new_building.json"

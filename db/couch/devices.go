@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/byuoitav/common/log"
-	"github.com/byuoitav/common/nerr"
-	"github.com/byuoitav/common/structs"
+	"github.com/byuoitav/control-keys/nerr"
+	"github.com/byuoitav/control-keys/structs"
+	"go.uber.org/zap"
 )
 
 // GetDevice .
@@ -396,7 +396,7 @@ func (c *CouchDB) GetDevicesByRoleAndTypeAndDesignation(role, deviceType, design
 	if err != nil {
 		return devs, err.Addf("Couldn't get device by role and type and designation")
 	}
-	log.L.Debugf("Found %v devices with type %v and role %v", len(devs), deviceType, role)
+	zap.L().Debug("Found devices", zap.Int("count", len(devs)), zap.String("type", deviceType), zap.String("role", role))
 
 	//we have to go get all the rooms with the given designation
 	rooms, err := c.GetRoomsByDesignation(designation)
@@ -410,7 +410,7 @@ func (c *CouchDB) GetDevicesByRoleAndTypeAndDesignation(role, deviceType, design
 	for r := range rooms {
 		roomSet[rooms[r].ID] = true
 	}
-	log.L.Debugf("Found %v rooms with designation %v", len(rooms), designation)
+	zap.L().Debug("Found rooms with designation", zap.Int("count", len(rooms)), zap.String("designation", designation))
 
 	//filter on the match
 	var toReturn []structs.Device

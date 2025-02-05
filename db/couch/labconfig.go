@@ -3,7 +3,7 @@ package couch
 import (
 	"fmt"
 
-	"github.com/byuoitav/common/structs"
+	"github.com/byuoitav/control-keys/structs"
 )
 
 // GetLabConfig returns the Lab Configuration for the given room

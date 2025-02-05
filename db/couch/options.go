@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/byuoitav/common/log"
-	"github.com/byuoitav/common/structs"
+	"github.com/byuoitav/control-keys/structs"
+	"go.uber.org/zap"
 )
 
 // TEMPLATES
@@ -40,7 +40,7 @@ func (c *CouchDB) GetAllTemplates() ([]structs.Template, error) {
 
 // GetTemplate returns a template UIConfig.
 func (c *CouchDB) GetTemplate(id string) (structs.UIConfig, error) {
-	log.L.Info(id)
+	zap.L().Info("Getting template", zap.String("id", id))
 	template, err := c.getTemplate(id)
 	return *template.UIConfig, err
 }
@@ -318,7 +318,7 @@ func (c *CouchDB) getTags() (tags, error) {
 	return toReturn, err
 }
 
-// UpdateTags puts an updated list of tagsin the database.
+// UpdateTags puts an updated list of tags in the database.
 func (c *CouchDB) UpdateTags(newTags []string) ([]string, error) {
 	var toReturn []string
 

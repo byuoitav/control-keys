@@ -5,14 +5,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"os"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/byuoitav/common/log"
+	"go.uber.org/zap"
 )
 
 /* Consts */
@@ -103,7 +103,7 @@ func (c *CouchDB) req(method, endpoint, contentType string, body []byte) (string
 	}
 	defer resp.Body.Close()
 
-	b, err := ioutil.ReadAll(resp.Body)
+	b, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", nil, fmt.Errorf("%s: %s", errMsg, err)
 	}
@@ -136,12 +136,12 @@ func (c *CouchDB) waitUntilReady() {
 			// wait until database is ready
 			state, err := c.GetStatus()
 			if err != nil || state != "completed" {
-				log.L.Warnf("Database replication in state %v (error: %s); Retrying in 5 seconds", state, err)
+				zap.L().Warn("Database replication in state", zap.String("state", state), zap.Error(err))
 				time.Sleep(5 * time.Second)
 				continue
 			}
 
-			log.L.Infof("Database replication in state %v. Allowing CouchDB requests now.", state)
+			zap.L().Info("Database replication in state", zap.String("state", state))
 			break
 		}
 	})

@@ -6,19 +6,22 @@ import (
 	"sync"
 	"time"
 
-	"github.com/byuoitav/common/log"
 	"github.com/byuoitav/control-keys/db"
+	"go.uber.org/zap"
 )
 
 type CodeMap struct {
 	controlKeys map[string]Preset
 	m           sync.RWMutex
+	logger      *zap.Logger
 }
 
 func New() *CodeMap {
+	logger, _ := zap.NewProduction()
 	return &CodeMap{
 		controlKeys: make(map[string]Preset),
 		m:           sync.RWMutex{},
+		logger:      logger,
 	}
 }
 
@@ -32,14 +35,14 @@ type Preset struct {
 	PresetName string
 }
 
-func generateMap() (map[string]Preset, error) {
-	//Query the DB for all of the UIConfigs
+func generateMap(logger *zap.Logger) (map[string]Preset, error) {
+	// Query the DB for all of the UIConfigs
 	uiConfigs, er := db.GetDB().GetAllUIConfigs()
 	if er != nil {
-		log.L.Errorf("error: %s", er)
+		logger.Error("error querying UIConfigs", zap.Error(er))
 		return nil, er
 	}
-	//create a map for Room/Preset
+	// Create a map for Room/Preset
 	m := make(map[string]Preset)
 	for r := range uiConfigs {
 		for p := range uiConfigs[r].Presets {
@@ -63,7 +66,7 @@ func generateCode() string {
 	min := 0
 	max := 1000000
 	code := strconv.Itoa(rand.Intn(max - min))
-	//prepend it with zeros so every number selected is still a 6 digit number (i.e 1234 --> 001234)
+	// Prepend it with zeros so every number selected is still a 6 digit number (i.e 1234 --> 001234)
 	code = "000000" + code
 	code = string(code[len(code)-6:])
 	return code
@@ -108,7 +111,7 @@ func (c *CodeMap) RefreshControlKey(roomID string) bool {
 	}
 
 	if len(roomKeys) == 0 {
-		// gonna assume it's not a valid preset
+		// Gonna assume it's not a valid preset
 		return false
 	}
 
@@ -129,10 +132,10 @@ func (c *CodeMap) RefreshControlKey(roomID string) bool {
 }
 
 func (c *CodeMap) refreshMap() {
-	newKeys, err := generateMap()
+	newKeys, err := generateMap(c.logger)
 	for err != nil {
 		time.Sleep(60 * time.Second)
-		newKeys, err = generateMap()
+		newKeys, err = generateMap(c.logger)
 	}
 	c.m.Lock()
 	c.controlKeys = newKeys
@@ -140,11 +143,11 @@ func (c *CodeMap) refreshMap() {
 
 	ticker := time.NewTicker(1 * time.Hour)
 	for range ticker.C {
-		newKeys, err := generateMap()
+		newKeys, err := generateMap(c.logger)
 		for err != nil {
 			ticker.Reset(1 * time.Hour)
 			time.Sleep(60 * time.Second)
-			newKeys, err = generateMap()
+			newKeys, err = generateMap(c.logger)
 		}
 		c.m.Lock()
 		c.controlKeys = newKeys

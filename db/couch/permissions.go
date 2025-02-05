@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/byuoitav/common/structs"
+	"github.com/byuoitav/control-keys/structs"
 )
 
 func (c *CouchDB) GetAuth() (structs.Auth, error) {

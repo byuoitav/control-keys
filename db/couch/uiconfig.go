@@ -4,12 +4,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"time"
 
-	"github.com/byuoitav/common/log"
-	"github.com/byuoitav/common/structs"
+	"github.com/byuoitav/control-keys/structs"
+	"go.uber.org/zap"
 )
 
 // GetUIConfig returns a UIConfig file from the database.
@@ -164,7 +164,7 @@ func (c *CouchDB) GetUIAttachment(ui, attachment string) (string, []byte, error)
 	}
 	defer resp.Body.Close()
 
-	b, err := ioutil.ReadAll(resp.Body)
+	b, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", nil, err
 	}
@@ -176,7 +176,7 @@ func (c *CouchDB) GetUIAttachment(ui, attachment string) (string, []byte, error)
 			return "", nil, fmt.Errorf("received a non-200 response from %v. Body: %s", url, b)
 		}
 
-		log.L.Infof("Non-200 response: %v", ce.Error)
+		zap.L().Info("Non-200 response", zap.String("error", ce.Error))
 		return "", nil, CheckCouchErrors(ce)
 	}
 

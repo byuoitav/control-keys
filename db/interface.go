@@ -3,11 +3,11 @@ package db
 import (
 	"os"
 
-	"github.com/byuoitav/common/db/couch"
-	"github.com/byuoitav/common/log"
-	"github.com/byuoitav/common/nerr"
-	"github.com/byuoitav/common/state/statedefinition"
-	"github.com/byuoitav/common/structs"
+	"github.com/byuoitav/control-keys/db/couch"
+	"github.com/byuoitav/control-keys/nerr"
+	"github.com/byuoitav/control-keys/state/statedefinition"
+	"github.com/byuoitav/control-keys/structs"
+	"go.uber.org/zap"
 )
 
 // DB .
@@ -125,17 +125,25 @@ var username string
 var password string
 
 var database DB
+var logger *zap.Logger
 
 func init() {
 	address = os.Getenv("DB_ADDRESS")
 	username = os.Getenv("DB_USERNAME")
 	password = os.Getenv("DB_PASSWORD")
+
+	var err error
+	logger, err = zap.NewProduction()
+	if err != nil {
+		panic(err)
+	}
+	defer logger.Sync() // flushes buffer, if any
 }
 
 // GetDB returns the instance of the database to use.
 func GetDB() DB {
 	if len(address) == 0 {
-		log.L.Errorf("DB_ADDRESS is not set.")
+		logger.Error("DB_ADDRESS is not set.")
 	}
 
 	// TODO add logic to "pick" which db to create

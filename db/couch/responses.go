@@ -1,8 +1,8 @@
 package couch
 
 import (
-	"github.com/byuoitav/common/state/statedefinition"
-	"github.com/byuoitav/common/structs"
+	"github.com/byuoitav/control-keys/state/statedefinition"
+	"github.com/byuoitav/control-keys/structs"
 )
 
 type building struct {

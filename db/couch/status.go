@@ -3,13 +3,13 @@ package couch
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"time"
 
-	l "github.com/byuoitav/common/log"
+	"go.uber.org/zap"
 
-	"github.com/byuoitav/common/nerr"
+	"github.com/byuoitav/control-keys/nerr"
 )
 
 type couchReplicationState struct {
@@ -34,7 +34,7 @@ type couchReplicationPayload struct {
 	Selector     interface{} `json:"selector,omitempty"`
 }
 
-//Simply returns the replication state.
+// Simply returns the replication state.
 func (c *CouchDB) GetStatus() (string, error) {
 	//check the state of the devices index to see if it's replication or ready.
 	state, err := c.CheckReplication("auto_devices")
@@ -46,7 +46,10 @@ func (c *CouchDB) GetStatus() (string, error) {
 }
 
 func (c *CouchDB) CheckReplication(replID string) (string, *nerr.E) {
-	l.L.Debugf("Checking to see if replication document %v is already scheduled", replID)
+	logger, _ := zap.NewProduction()
+	defer logger.Sync()
+
+	logger.Debug("Checking to see if replication document is already scheduled", zap.String("replicationID", replID))
 
 	req, err := http.NewRequest("GET", fmt.Sprintf("%v/_scheduler/docs/_replicator/%v", c.address, replID), nil)
 	if err != nil {
@@ -61,7 +64,7 @@ func (c *CouchDB) CheckReplication(replID string) (string, *nerr.E) {
 	}
 
 	defer resp.Body.Close()
-	b, err := ioutil.ReadAll(resp.Body)
+	b, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", nerr.Translate(err).Addf("Couldn't read error response from couch server while checking for replication %v", replID)
 	}
@@ -101,7 +104,7 @@ func (c *CouchDB) CheckReplication(replID string) (string, *nerr.E) {
 	case "crashed":
 		return "crashed", nil
 	default:
-		l.L.Errorf("Replication state for %v is in a bad state %v", replID, state.State)
+		logger.Error("Replication state is in a bad state", zap.String("replicationID", replID), zap.String("state", state.State))
 		return state.State, nerr.Create(fmt.Sprintf("Replication of %v is in state %v", replID, state.State), "couch-repl-error")
 	}
 }

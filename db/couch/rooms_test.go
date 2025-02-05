@@ -3,9 +3,9 @@ package couch
 import (
 	"testing"
 
-	"github.com/byuoitav/common/log"
+	"go.uber.org/zap"
 
-	"github.com/byuoitav/common/structs"
+	"github.com/byuoitav/control-keys/structs"
 )
 
 var testRoom = "new_room_a.json"
@@ -75,10 +75,10 @@ func TestRoom(t *testing.T) {
 func getRoom(name string) {
 	room, err := couch.GetRoom(name)
 	if err != nil {
-		log.L.Infof("error: %s", err)
+		logger.Info("error", zap.String("error", err.Error()))
 	}
 
-	log.L.Infof("room: %v", room)
+	logger.Info("room", zap.Any("room", room))
 }
 
 func testCreateRoomWithoutBuilding(t *testing.T) {
