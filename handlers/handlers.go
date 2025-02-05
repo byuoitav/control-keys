@@ -24,7 +24,7 @@ func New(c *codemap.CodeMap) *Handler {
 
 // GetPresetHandler The endpoint to get the preset from the map
 func (h *Handler) GetPresetHandler(context *gin.Context) {
-	controlKey := context.Param("controlKey")
+	controlKey := context.Param("param")
 	preset := h.c.GetPresetFromMap(controlKey)
 	if preset == (codemap.Preset{}) {
 		context.JSON(http.StatusNotFound, gin.H{"message": "The preset was not found for this control key"})
@@ -34,7 +34,7 @@ func (h *Handler) GetPresetHandler(context *gin.Context) {
 }
 
 func (h *Handler) GetControlKeyHandler(context *gin.Context) {
-	presetParam := context.Param("preset")
+	presetParam := context.Param("param")
 	presetParts := strings.SplitN(presetParam, " ", 2)
 	preset := codemap.Preset{
 		RoomID:     presetParts[0],
@@ -51,7 +51,7 @@ func (h *Handler) GetControlKeyHandler(context *gin.Context) {
 }
 
 func (h *Handler) RefreshPresetKey(context *gin.Context) {
-	roomID := context.Param("room")
+	roomID := context.Param("param")
 
 	ok := h.c.RefreshControlKey(roomID)
 
@@ -64,5 +64,5 @@ func (h *Handler) RefreshPresetKey(context *gin.Context) {
 }
 
 func (h *Handler) HealthCheck(context *gin.Context) {
-	context.JSON(http.StatusOK, gin.H{"message": "Healthy!"})
+	context.JSON(http.StatusOK, "Healthy!")
 }

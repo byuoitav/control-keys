@@ -16,8 +16,7 @@ type CodeMap struct {
 	logger      *zap.Logger
 }
 
-func New() *CodeMap {
-	logger, _ := zap.NewProduction()
+func New(logger *zap.Logger) *CodeMap {
 	return &CodeMap{
 		controlKeys: make(map[string]Preset),
 		m:           sync.RWMutex{},
@@ -37,11 +36,13 @@ type Preset struct {
 
 func generateMap(logger *zap.Logger) (map[string]Preset, error) {
 	// Query the DB for all of the UIConfigs
-	uiConfigs, er := db.GetDB().GetAllUIConfigs()
+	database := db.GetDB()
+	uiConfigs, er := database.GetAllUIConfigs()
 	if er != nil {
 		logger.Error("error querying UIConfigs", zap.Error(er))
 		return nil, er
 	}
+
 	// Create a map for Room/Preset
 	m := make(map[string]Preset)
 	for r := range uiConfigs {
@@ -58,7 +59,6 @@ func generateMap(logger *zap.Logger) (map[string]Preset, error) {
 			}
 		}
 	}
-
 	return m, nil
 }
 
@@ -88,7 +88,6 @@ func (c *CodeMap) GetPresetFromMap(code string) Preset {
 func (c *CodeMap) GetControlKeyFromPreset(preset Preset) string {
 	c.m.RLock()
 	defer c.m.RUnlock()
-
 	for key, value := range c.controlKeys {
 		if value == preset {
 			return key
@@ -132,6 +131,7 @@ func (c *CodeMap) RefreshControlKey(roomID string) bool {
 }
 
 func (c *CodeMap) refreshMap() {
+	c.logger.Debug("Refreshing control keys")
 	newKeys, err := generateMap(c.logger)
 	for err != nil {
 		time.Sleep(60 * time.Second)

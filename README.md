@@ -4,8 +4,10 @@ This service is responsible for generating control keys for each camera. The con
 ## Endpoints
 * <mark>GET</mark> `/:controlKey/getPreset`
     * Returns the preset for the camera with the control key
+    * ex: `http://localhost:8029/871540/getPreset`
 * <mark>GET</mark> `/:preset/getControlKey`
     * Returns the control key for the camera with the preset
+    * ex: `http://localhost:8029/JET-1106 JET 1106/getControlKey`
 * <mark>GET</mark> `/:room/refresh`
     * Refreshes the control keys for the room
 * <mark>GET</mark> `/status`

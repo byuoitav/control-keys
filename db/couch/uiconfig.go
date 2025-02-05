@@ -194,7 +194,6 @@ func (c *CouchDB) GetAllUIConfigs() ([]structs.UIConfig, error) {
 	if err != nil {
 		return toReturn, fmt.Errorf("failed to marshal query to get all UI configs: %s", err)
 	}
-
 	var resp uiconfigQueryResponse
 
 	err = c.MakeRequest("POST", fmt.Sprintf("%v/_find", UI_CONFIGS), "application/json", b, &resp)
