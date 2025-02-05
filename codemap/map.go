@@ -6,8 +6,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/byuoitav/common/db"
 	"github.com/byuoitav/common/log"
+	"github.com/byuoitav/control-keys/db"
 )
 
 type CodeMap struct {
