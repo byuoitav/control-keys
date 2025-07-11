@@ -32,6 +32,7 @@ Start the service:
 
 ```bash
 go run main.go
+```
 
 ## 🌐 HTTP Endpoints
 
